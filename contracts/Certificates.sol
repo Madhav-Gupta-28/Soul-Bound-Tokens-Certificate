@@ -143,6 +143,44 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
         }
     }
 
+     // fetching all the Ceritificates of a Candidate 
+    function fetchMYNFTs(address  _address) public view returns(Certificate[] memory){
+        uint256 nftcount = _tokenIdCounter.current();
+        uint256 currentIndex = 0;
+
+        Certificate[] memory nfts = new Certificate[](nftcount);
+
+        for(uint256  i = 0 ; i < nftcount ; i++){
+            if(idToCertificate[i+1].candidate == _address){
+                uint256 currrentId = i + 1 ;
+
+                Certificate storage currentNFT = idToCertificate[currrentId];
+                nfts[currentIndex] = currentNFT;
+                currentIndex += 1 ;
+            }
+        }
+        return nfts;
+    }
+
+
+            // fetching all Ceritificates  data
+    function fetchALLNFTs() public view returns(Certificate[] memory){
+        uint256 nftcount = _tokenIdCounter.current();
+        uint256 currentIndex = 0;
+
+        Certificate[] memory nfts = new Certificate[](nftcount);
+
+        for(uint256  i = 0 ; i < nftcount ; i++){
+                uint256 currrentId = i + 1 ;
+                Certificate storage currentNFT = idToCertificate[currrentId];
+                nfts[currentIndex] = currentNFT;
+                currentIndex += 1 ;
+            
+        }
+        return nfts;
+    }
+
+
 
     function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
         super._burn(tokenId);
