@@ -13,7 +13,7 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
 
 
     // Events 
-    event CeritificateCreadted(address indexed _creator, address indexed candidate, uint256 indexed _id);
+    event CeritificateCreated(address indexed _creator, address indexed candidate, uint256 indexed _id);
 
     // Error 
     error NotTeacher();
@@ -22,18 +22,18 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
     address[] public teachers;
 
 
-    // Modifier
-    function   checkIfItisACompany(address _address) internal view returns(bool) {
-      bool isCompany = false;
+    
+    function checkIfItisATeacher(address _address) internal view returns(bool) {
+      bool isTeacher = false;
 
         for(uint256 i = 0 ; i < teachers.length; i++){
             if(teachers[i] == _address){
-              isCompany = true;
+              isTeacher = true;
               break;         
             }
         }
 
-        if(isCompany == true){
+        if(isTeacher == true){
           return true;
         }else{
             return false;
@@ -57,10 +57,10 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
         bool isRevoked;
     }
 
-    constructor(string memory name, string memory symbol) ERC721(name, symbol) {}
+    constructor(string memory name, string memory symbol) ERC721("American Crypto Academy Ceritificates ", "ACACERITIFICATES") {}
 
     function _beforeTokenTransfer(address from, address to, uint256 tokenId , uint256 batchSize) internal override(ERC721)  {
-        (bool isTeacher) = checkIfItisACompany(msg.sender);
+        (bool isTeacher) = checkIfItisATeacher(from);
         if(
             isTeacher == false
         ){
@@ -70,8 +70,8 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
         }
     }
 
-    function safeMint(address to, string memory tokenURI , uint256 daysTillValid) public onlyOwner nonReentrant {
-          (bool isTeacher) = checkIfItisACompany(msg.sender);
+    function safeMint(address to, string memory tokenURI , uint256 daysTillValid) public  nonReentrant {
+          (bool isTeacher) = checkIfItisATeacher(msg.sender);
         if(
             isTeacher == false
         ){
@@ -94,7 +94,7 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
         );
         addressToid[to].push(tokenId);
 
-        emit CeritificateCreadted(msg.sender, to, tokenId);
+        emit CeritificateCreated(msg.sender, to, tokenId);
 
       }
     }
@@ -125,8 +125,8 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
     }
 
     // updating the ceritificate Validity 
-    function updateCertificateValidity(uint256 _id, uint256 _days) public  {
-        (bool isTeacher) = checkIfItisACompany(msg.sender);
+    function updateCertificateValidity(uint256 _id, uint256 _days) public nonReentrant  {
+        (bool isTeacher) = checkIfItisATeacher(msg.sender);
         if(
             isTeacher == false
         ){
@@ -137,8 +137,8 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
     }
 
     // revoking the certificate
-    function revokeCertificate(uint256 _id) public  {
-        (bool isTeacher) = checkIfItisACompany(msg.sender);
+    function revokeCertificate(uint256 _id) public nonReentrant  {
+        (bool isTeacher) = checkIfItisATeacher(msg.sender);
         if(
             isTeacher == false
         ){
@@ -148,7 +148,7 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
         }
     }
 
-     // fetching all the Ceritificates of a Candidate 
+    // fetching all the Ceritificates of a Candidate 
     function fetchMYNFTs(address  _address) public view returns(Certificate[] memory){
         uint256 nftcount = _tokenIdCounter.current();
         uint256 currentIndex = 0;
@@ -168,7 +168,7 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
     }
 
 
-            // fetching all Ceritificates  data
+    // fetching all Ceritificates  data
     function fetchALLNFTs() public view returns(Certificate[] memory){
         uint256 nftcount = _tokenIdCounter.current();
         uint256 currentIndex = 0;
