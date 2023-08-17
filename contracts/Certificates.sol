@@ -68,11 +68,16 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
         }else{
             super._beforeTokenTransfer(from, to, tokenId,batchSize);
         }
-       
-        
     }
 
     function safeMint(address to, string memory tokenURI , uint256 daysTillValid) public onlyOwner nonReentrant {
+          (bool isTeacher) = checkIfItisACompany(msg.sender);
+        if(
+            isTeacher == false
+        ){
+            revert NotTeacher();
+        }else{
+
         uint256 tokenId = _tokenIdCounter.current();
         _safeMint(to, tokenId);
         _setTokenURI(tokenId, tokenURI);
@@ -91,7 +96,7 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
 
         emit CeritificateCreadted(msg.sender, to, tokenId);
 
-
+      }
     }
 
     // updating teacher list 
