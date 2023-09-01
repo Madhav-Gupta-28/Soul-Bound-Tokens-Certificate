@@ -1,68 +1,75 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.4;
+pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol"; 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+// import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
-contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
+
+contract EasyCerts is ERC721 , ERC721URIStorage ,Ownable , ReentrancyGuard{
+
+    // using ECDSA for bytes32;
+
     using Counters for Counters.Counter;
-    Counters.Counter private _tokenIdCounter;
+    Counters.Counter private _certificatesIds;
 
+    // signer address
+    // address public signer;
 
-    // Events 
-    event CeritificateCreated(address indexed _creator, address indexed candidate, uint256 indexed _id);
-
-    // Error 
-    error NotTeacher();
-
-    // tecahers array who can issue ceritificates
-    address[] public teachers;
-
-
-    
-    function checkIfItisATeacher(address _address) internal view returns(bool) {
-      bool isTeacher = false;
-
-        for(uint256 i = 0 ; i < teachers.length; i++){
-            if(teachers[i] == _address){
-              isTeacher = true;
-              break;         
-            }
-        }
-
-        if(isTeacher == true){
-          return true;
-        }else{
-            return false;
-        }
-       
+    constructor(string memory name, string memory symbol) ERC721(name, symbol) {
+        // signer = address( _signer);
     }
+
+
+    // Event
+    event CeritificateCreated(address indexed creator, address indexed candidate, uint256 indexed id , uint256 timeofCreation);
+    event NFTTransferRequest(address indexed  from , address indexed to , uint256 indexed id);
+    event ValidityOfCertificateUpdated(address indexed  from , address indexed to , uint256 indexed id , uint256 time);
+    event CeritificatesRevoked(address indexed  from , address indexed to , uint256 indexed id);
     
-    
-    //  Mapping
+
+    // Error
+    error NotTeacher();
+    error UserCannotTransferCertificates();
+
+    // Mappings
+    mapping(address => bool) public isTeacher;
+    mapping(bytes32 => bool ) public isHashed;
     mapping(uint256 => Certificate) public idToCertificate;
     mapping(address => uint256[]) public addressToid;
 
-    // Certificate struct
+    // Modifier
+    function  onlyTeacher(address _address) internal view  returns(bool) {
+        if(isTeacher[_address] == true){
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+
+    // Struct
     struct Certificate{
         uint256 id;
         string tokenURI;
-        address  candidate;
-        address  creator;
+        address candidate;
+        address  issuer;
         uint256 timeOfIssueance;
         uint256 validTill;
         bool isRevoked;
     }
 
-    constructor(string memory name, string memory symbol) ERC721("American Crypto Academy Ceritificates ", "ACACERITIFICATES") {}
 
+    // Main functions
+
+    // Calling this function before a token transfer
     function _beforeTokenTransfer(address from, address to, uint256 tokenId , uint256 batchSize) internal override(ERC721)  {
-        (bool isTeacher) = checkIfItisATeacher(from);
+        (bool isteacher) = onlyTeacher(from);
         if(
-            isTeacher == false
+            isteacher == false
         ){
             require(from == address(0), "Token not transferable");
         }else{
@@ -70,20 +77,17 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
         }
     }
 
-    function safeMint(address to, string memory tokenURI , uint256 daysTillValid) public  nonReentrant {
-          (bool isTeacher) = checkIfItisATeacher(msg.sender);
-        if(
-            isTeacher == false
-        ){
-            revert NotTeacher();
-        }else{
 
-        uint256 tokenId = _tokenIdCounter.current();
-        _safeMint(to, tokenId);
-        _setTokenURI(tokenId, tokenURI);
-        _tokenIdCounter.increment();
+    function mintCertificate(address to , string memory tokenURI , uint256 daysTillValid ) external nonReentrant{
+        (bool isteacher) = onlyTeacher(msg.sender);
 
-        idToCertificate[tokenId] = Certificate(
+        if(isteacher == true){
+            uint256 tokenId = _certificatesIds.current();
+             _safeMint(to, tokenId);
+             _setTokenURI(tokenId, tokenURI);
+             _certificatesIds.increment();
+
+            idToCertificate[tokenId] = Certificate(
             tokenId,
             tokenURI,
             to,
@@ -91,66 +95,85 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
             block.timestamp,
             block.timestamp + daysTillValid * 1 days,
             false
-        );
-        addressToid[to].push(tokenId);
+         );
+            addressToid[to].push(tokenId);
 
-        emit CeritificateCreated(msg.sender, to, tokenId);
+            emit CeritificateCreated(msg.sender, to, tokenId , block.timestamp);
+        }
 
-      }
+        else{
+            revert NotTeacher();
+        }
     }
 
-    // updating teacher list 
-    function addTeacher(address _address) public onlyOwner {
-        teachers.push(_address);
+
+    // adding  teachers to mapping  
+    function addTeacher(address _address) external onlyOwner {
+        isTeacher[_address] = true;
     }
 
-    // getting all the certificates of a candidate
+    // removing teacher from mapping
+    function removeTeacher(address _address)   external onlyOwner{
+        isTeacher[_address] = false;
+    }
+
+    // updating the ceritificate Validity 
+    function updateCertificateValidity(uint256 _id, uint256 _days) external nonReentrant  {
+        (bool isteacher) = onlyTeacher(msg.sender);
+        require(_days > 0 , "Days should be greater than 0");
+        require(_id > 0 , "Id should be greater than 0");
+        require(idToCertificate[_id].isRevoked == false , "Certificate is revoked");
+
+        if(
+            isteacher == false
+        ){
+            revert NotTeacher();
+        }else{
+            idToCertificate[_id].validTill = block.timestamp + _days * 1 days;
+            emit ValidityOfCertificateUpdated(msg.sender, idToCertificate[_id].candidate, _id, block.timestamp);
+
+        }
+    }
+
+
+     // revoking the certificate
+    function revokeCertificate(uint256 _id) external nonReentrant  {
+        (bool isteacher) = onlyTeacher(msg.sender);
+        require(idToCertificate[_id].isRevoked == false , "Certificate is already revoked");
+        
+        if(
+            isteacher == false
+        ){
+            revert NotTeacher();
+        }else{
+            idToCertificate[_id].isRevoked = true;
+            emit CeritificatesRevoked(msg.sender, idToCertificate[_id].candidate, _id);
+        }
+    }
+
+
+    // =========   View functions
+
+
+      // getting all the certificates of a candidate
     function getCertificates(address _address) public view returns(uint256[] memory){
         return addressToid[_address];
     }
 
-    // getting the certificate details
+       // getting the certificate details
     function getCertificateDetails(uint256 _id) public view returns(Certificate memory){
         return idToCertificate[_id];
     }
 
     // getting the total number of certificates
     function getTotalCertificates() public view returns(uint256){
-        return _tokenIdCounter.current();
+        return _certificatesIds.current();
     }
 
-    // getting the total number of teachers
-    function getTotalTeachers() public view returns(uint256){
-        return teachers.length;
-    }
-
-    // updating the ceritificate Validity 
-    function updateCertificateValidity(uint256 _id, uint256 _days) public nonReentrant  {
-        (bool isTeacher) = checkIfItisATeacher(msg.sender);
-        if(
-            isTeacher == false
-        ){
-            revert NotTeacher();
-        }else{
-            idToCertificate[_id].validTill = block.timestamp + _days * 1 days;
-        }
-    }
-
-    // revoking the certificate
-    function revokeCertificate(uint256 _id) public nonReentrant  {
-        (bool isTeacher) = checkIfItisATeacher(msg.sender);
-        if(
-            isTeacher == false
-        ){
-            revert NotTeacher();
-        }else{
-            idToCertificate[_id].isRevoked = true;
-        }
-    }
 
     // fetching all the Ceritificates of a Candidate 
     function fetchMYNFTs(address  _address) public view returns(Certificate[] memory){
-        uint256 nftcount = _tokenIdCounter.current();
+         uint256 nftcount = _certificatesIds.current();
         uint256 currentIndex = 0;
 
         Certificate[] memory nfts = new Certificate[](nftcount);
@@ -170,7 +193,7 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
 
     // fetching all Ceritificates  data
     function fetchALLNFTs() public view returns(Certificate[] memory){
-        uint256 nftcount = _tokenIdCounter.current();
+        uint256 nftcount = _certificatesIds.current();
         uint256 currentIndex = 0;
 
         Certificate[] memory nfts = new Certificate[](nftcount);
@@ -187,6 +210,8 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
 
 
 
+  
+
     function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
         super._burn(tokenId);
     }
@@ -195,7 +220,9 @@ contract Certificates is ERC721, ERC721URIStorage, Ownable , ReentrancyGuard  {
         return super.tokenURI(tokenId);
     }
 
+
     function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721, ERC721URIStorage) returns (bool) {
         return interfaceId == type(IERC165).interfaceId;
     }
+
 }
