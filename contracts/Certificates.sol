@@ -24,6 +24,11 @@ contract EasyCerts is ERC721 , ERC721URIStorage ,Ownable , ReentrancyGuard{
     }
 
 
+    // defining enum 
+    enum CertificateStatus { Active, Expired, Revoked }
+
+
+
     // Event
     event CeritificateCreated(address indexed creator, address indexed candidate, uint256 indexed id , uint256 timeofCreation);
     event NFTTransferRequest(address indexed  from , address indexed to , uint256 indexed id);
@@ -66,7 +71,7 @@ contract EasyCerts is ERC721 , ERC721URIStorage ,Ownable , ReentrancyGuard{
         address  issuer;
         uint256 timeOfIssueance;
         uint256 validTill;
-        bool isRevoked;
+        CertificateStatus status;
     }
 
 
@@ -127,7 +132,7 @@ contract EasyCerts is ERC721 , ERC721URIStorage ,Ownable , ReentrancyGuard{
             msg.sender,
             block.timestamp,
             block.timestamp + daysTillValid * 1 days,
-            false
+            CertificateStatus.Active
          );
             // Mark this certificate hash as minted
         isHashed[uniqueCertificateHash] = true;
@@ -157,7 +162,7 @@ contract EasyCerts is ERC721 , ERC721URIStorage ,Ownable , ReentrancyGuard{
         (bool isteacher) = onlyTeacher(msg.sender);
         require(_days > 0 , "Days should be greater than 0");
         require(_id > 0 , "Id should be greater than 0");
-        require(idToCertificate[_id].isRevoked == false , "Certificate is revoked");
+        require(idToCertificate[_id].status != CertificateStatus.Revoked, "Certificate is revoked");
 
         if(
             isteacher == false
@@ -174,14 +179,15 @@ contract EasyCerts is ERC721 , ERC721URIStorage ,Ownable , ReentrancyGuard{
      // revoking the certificate
     function revokeCertificate(uint256 _id) external nonReentrant  {
         (bool isteacher) = onlyTeacher(msg.sender);
-        require(idToCertificate[_id].isRevoked == false , "Certificate is already revoked");
+       require(idToCertificate[_id].status != CertificateStatus.Revoked, "Certificate is already revoked");
+
         
         if(
             isteacher == false
         ){
             revert NotTeacher();
         }else{
-            idToCertificate[_id].isRevoked = true;
+           idToCertificate[_id].status = CertificateStatus.Revoked; // Set status to Revoked
             emit CeritificatesRevoked(msg.sender, idToCertificate[_id].candidate, _id);
         }
     }
@@ -189,6 +195,11 @@ contract EasyCerts is ERC721 , ERC721URIStorage ,Ownable , ReentrancyGuard{
 
     // =========   View functions
 
+
+    // get ceritificate status
+    function getCertificateStatus(uint256 _id) public view returns(CertificateStatus) {
+    return idToCertificate[_id].status;
+}
 
       // getting all the certificates of a candidate
     function getCertificates(address _address) public view returns(uint256[] memory){
