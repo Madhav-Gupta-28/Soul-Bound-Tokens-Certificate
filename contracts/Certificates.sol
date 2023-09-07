@@ -6,17 +6,17 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/Counters.sol"; 
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
+// import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 
 
 contract EasyCerts is ERC721 , ERC721URIStorage ,Ownable , ReentrancyGuard{
 
-    using ECDSA for bytes32;
+    // using ECDSA for bytes32;
 
     using Counters for Counters.Counter;
     Counters.Counter private _certificatesIds;
 
-    // ssigner address
+    // signer address
     address public immutable signer;
 
     constructor(string memory name, string memory symbol, address _signer) ERC721(name, symbol) {
@@ -56,11 +56,11 @@ contract EasyCerts is ERC721 , ERC721URIStorage ,Ownable , ReentrancyGuard{
     }
 
 
-    modifier onlySigner(address _address)  {
-        require(_address == signer , "Only signer can call this function");
-        _;
+    // modifier onlySigner(address _address)  {
+    //     require(_address == signer , "Only signer can call this function");
+    //     _;
         
-    }
+    // }
 
 
     // Struct
@@ -77,19 +77,18 @@ contract EasyCerts is ERC721 , ERC721URIStorage ,Ownable , ReentrancyGuard{
 
     // Main functions
 
+//     function verifySignature(
+//     address to,
+//     string memory tokenuri,
+//     uint256 daysTillValid,
+//     uint256 _id,
+//     bytes memory signature
+// ) public view returns (bool) {
+//     bytes32 messageHash = keccak256(abi.encodePacked(to, tokenuri, daysTillValid,_id));
+//     bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(messageHash);
 
-    function verifySignature(
-    address to,
-    string memory tokenuri,
-    uint256 daysTillValid,
-    uint256 _id,
-    bytes memory signature
-) public view returns (bool) {
-    bytes32 messageHash = keccak256(abi.encodePacked(to, tokenuri, daysTillValid,_id));
-    bytes32 ethSignedMessageHash = ECDSA.toEthSignedMessageHash(messageHash);
-
-    return ECDSA.recover(ethSignedMessageHash, signature) == signer;
-}
+//     return ECDSA.recover(ethSignedMessageHash, signature) == signer;
+// }
 
 
     // Calling this function before a token transfer
@@ -114,10 +113,10 @@ contract EasyCerts is ERC721 , ERC721URIStorage ,Ownable , ReentrancyGuard{
           // Check if this hash already exists to prevent duplicate certificates
     require(isHashed[uniqueCertificateHash] == false, "Duplicate certificate detected");
 
-        require(
-        verifySignature(to, tokenuri, daysTillValid, _certificatesIds.current()  ,signature),
-        "Invalid signature"
-    );
+    //     require(
+    //     verifySignature(to, tokenuri, daysTillValid, _certificatesIds.current()  ,signature),
+    //     "Invalid signature"
+    // );
 
         if(isteacher == true){
             uint256 tokenId = _certificatesIds.current();
@@ -148,12 +147,12 @@ contract EasyCerts is ERC721 , ERC721URIStorage ,Ownable , ReentrancyGuard{
 
 
     // adding  teachers to mapping  
-    function addTeacher(address _address) external onlySigner(msg.sender) {
+    function addTeacher(address _address) external  {
         isTeacher[_address] = true;
     }
 
     // removing teacher from mapping
-    function removeTeacher(address _address)   external onlySigner(msg.sender){
+    function removeTeacher(address _address)   external {
         isTeacher[_address] = false;
     }
 
