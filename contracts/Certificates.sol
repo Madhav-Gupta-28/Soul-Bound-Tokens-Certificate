@@ -16,11 +16,11 @@ contract EasyCerts is ERC721 , ERC721URIStorage ,Ownable , ReentrancyGuard{
     using Counters for Counters.Counter;
     Counters.Counter private _certificatesIds;
 
-    // signer address
-    address public immutable signer;
+    // // signer address
+    // address public immutable signer;
 
     constructor(string memory name, string memory symbol, address _signer) ERC721(name, symbol) {
-        signer = address( _signer);
+        // signer = address( _signer);
     }
 
 
@@ -104,7 +104,7 @@ contract EasyCerts is ERC721 , ERC721URIStorage ,Ownable , ReentrancyGuard{
     }
 
 
-    function mintCertificate(address to , string memory tokenuri , uint256 daysTillValid ,  bytes memory signature) external nonReentrant{
+    function mintCertificate(address to , string memory tokenuri , uint256 daysTillValid) external nonReentrant{
         (bool isteacher) = onlyTeacher(msg.sender);
 
         // Create a unique hash for each certificate based on some of its unique features
